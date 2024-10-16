@@ -9,17 +9,17 @@ local module = {
         CurrentBindingProfiles = "Default";
         Profiles = {
             Default = {
-                [Enum.KeyCode.E] = "interact";
-                [Enum.KeyCode.LeftShift] = "dash";
-                [Enum.KeyCode.LeftControl] = "slam";
-                [Enum.KeyCode.R] = "reload";
-                [Enum.KeyCode.One] = "inventory";
-                [Enum.KeyCode.Two] = "inventory";
-                [Enum.KeyCode.Three] = "inventory";
-                [Enum.KeyCode.Four] = "inventory";
-                [Enum.KeyCode.Five] = "inventory";
-                [Enum.KeyCode.Six] = "inventory";
-                [Enum.KeyCode.A] = "quickchange"
+                ["E"] = "interact";
+                ["LeftShift"] = "dash";
+                ["LeftControl"] = "slam";
+                ["R"] = "reload";
+                ["One"] = "inventory";
+                ["Two"] = "inventory";
+                ["Three"] = "inventory";
+                ["Four"] = "inventory";
+                ["Five"] = "inventory";
+                ["Six"] = "inventory";
+                ["A"] = "quickchange"
             };
             Keyboard = {
                 [Enum.KeyCode.E] = "interact";
@@ -28,7 +28,7 @@ local module = {
                 [Enum.KeyCode.X] = "interact";
             };
         };
-        Custom = {
+        CustomValues = { --Unqiue to each game. In this case, values are adjusted for AP400 PART 1 
             MaxStamina = 3;
             Stamina = 3
         };
@@ -49,21 +49,71 @@ local module = {
                 "ai_node";
             }
         };
+        --Baked lists are permanent during gameplay: they are meant to avoid errors when you forget to move something back and forth from its directory and Workspace.
         BakedWeaponList = {};
         WeaponList = {};
         BakedMapList = {};
-
-    }
+    };
+    BLOURCE_INPUT = {
+        Ver = "0.0.0";
+        TranslationActive = true;
+        TranslationTable = {
+            ["ButtonX"] = "E";
+            ["ButtonR2"] = "MouseButton1";
+            ["ButtonL2"] = "MouseButton2";
+        }
+    };
 }
 
+--##########################################################################
 --[[VARIABLES]]
 
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Root = game:GetService("ReplicatedStorage")
 local Debris = game:GetService("Debris")
 local InputService = game:GetService("UserInputService")
+
+--##########################################################################
+--[[BLOURCE INPUT!!]]
+
+--[[
+Translates input from their oririginal structure to a format readable by BLOURCE 2's input functions.
+]]
+
+function module.BLOURCE_INPUT:InputTranslation(input:InputObject, processed:boolean)
+    local KeyCode = input.KeyCode
+    local type = input.UserInputType
+    local tree = {
+        [Enum.UserInputType.Keyboard] = function() 
+            return KeyCode.Name
+        end;
+        [Enum.UserInputType.Gamepad1] = function()
+            --If input translation is active then, BLOURCE INPUT should translate an input (like Button_X for example)
+            if module.BLOURCE_INPUT.TranslationActive then
+                return module.BLOURCE_INPUT.TranslationTable[KeyCode.Name]
+            else
+                return KeyCode.Name 
+            end
+        end;
+        [Enum.UserInputType.MouseButton1] = function()
+            return "MouseButton1"
+        end;
+        [Enum.UserInputType.MouseButton2] = function()
+            return "MouseButton2"
+        end;
+        [Enum.UserInputType.MouseButton3] = function()
+            return "MouseButton3"
+        end;
+    }
+    if processed then
+        tree[type]()
+    end
+end
+
+--##########################################################################
 --[[FUNCS]]
 
+--##########################################################################
 --[[ENGINE FUNCS]]
 
 function module:Input(InputName, KeyCode)
@@ -71,9 +121,25 @@ function module:Input(InputName, KeyCode)
     
 end
 
-function module:DEVMAP(mapName:string?)
-    --the limited function for map loading: very limited, no save loading or anything, meant to test the most basic form of maps individually
+--[[
+The limited function for map loading: very limited, no save loading or anything, meant to test the most basic form of maps and scripts individually
+]]
+
+function module:DEVMAP(mapName:string,gameModeOverride:string)
+    local OG:Folder = Root.Map:FindFirstChild(mapName)
+    if OG then
+        --Cloning map
+        local Map = OG:Clone()
+        Map.Parent = workspace
+        Map.Name = "Map"
+    else
+        warn("Map "..mapName.." doesn't exist")
+    end
 end
+
+--[[
+Pretty self-explanatory lol
+]]
 
 function module:CreateGUI(guiName:string)
     local GUI:ScreenGui = Root.Resources.GUI:FindFirstChild(guiName)
@@ -89,11 +155,11 @@ end
 function module:Startup(args)
     --anchors players to ensure that it doesn't fall to death lol-
     LocalPlayer.Character.PrimaryPart.Anchored = true
-    
+    --input thingy
     InputService.InputBegan:Connect(function(Input: InputObject, GameProcessed: boolean)
         if GameProcessed then
             local keycode = Input.KeyCode
-            local id = table.find(module.CLIENT_VAR.Profiles[module.CLIENT_VAR.CurrentBindingProfiles], keycode)
+            local id = table.find(module.CLIENT_VAR.Profiles[module.CLIENT_VAR.CurrentBindingProfiles], module.BLOURCE_INPUT:InputTranslation(Input, GameProcessed))
             local inputscriptname = module.CLIENT_VAR.Profiles[module.CLIENT_VAR.CurrentBindingProfiles][id]
             local inmodule:ModuleScript = Root.Resources.Scripts.Inputs:FindFirstChild(inputscriptname)
             if inmodule then
@@ -104,7 +170,7 @@ function module:Startup(args)
     InputService.InputEnded:Connect(function(Input: InputObject, GameProcessed: boolean)
         if GameProcessed then
             local keycode = Input.KeyCode
-            local id = table.find(module.CLIENT_VAR.Profiles[module.CLIENT_VAR.CurrentBindingProfiles], keycode)
+            local id = table.find(module.CLIENT_VAR.Profiles[module.CLIENT_VAR.CurrentBindingProfiles], module.BLOURCE_INPUT:InputTranslation(Input, GameProcessed))
             local inputscriptname = module.CLIENT_VAR.Profiles[module.CLIENT_VAR.CurrentBindingProfiles][id]
             local inmodule:ModuleScript = Root.Resources.Scripts.Inputs:FindFirstChild(inputscriptname)
             if inmodule then
