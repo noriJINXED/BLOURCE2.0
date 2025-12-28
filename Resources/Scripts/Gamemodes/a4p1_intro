@@ -1,0 +1,33 @@
+local module = {
+	ValidInputs = {
+		"movement";
+		"interact";
+		"shoot";
+		"reload"
+	}
+}
+
+local userinput = game:GetService("UserInputService")
+local BLOURCE = require(game:GetService("ReplicatedStorage").Resources.Blource_Main)
+
+function module:OnLevelLoad()
+	local player = game:GetService("Players").LocalPlayer
+	print("load")
+	player.CameraMode = Enum.CameraMode.LockFirstPerson
+	userinput.MouseIconEnabled = false
+	local BLOURCE = require(game:GetService("ReplicatedStorage").Resources.Blource_Main)
+	local Humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+	local GUI = BLOURCE:CreateGUI("A4_IntroGUI")
+end
+
+function module:OnLevelUnload()
+	userinput.MouseIconEnabled = true
+	print("unload")
+	local player = game:GetService("Players").LocalPlayer
+	local GUI = player.PlayerGui:FindFirstChild("A4_IntroGUI")
+	if GUI then
+		GUI:Destroy()
+	end
+end
+
+return module
